@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/McpServer.Contracts/McpServer.Contracts.csproj" />
+    <Project Path="src/McpServer/McpServer.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/McpServer.IntegrationTests/McpServer.IntegrationTests.csproj" />
+    <Project Path="tests/McpServer.UnitTests/McpServer.UnitTests.csproj" />
+  </Folder>
+</Solution>

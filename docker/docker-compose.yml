@@ -1,0 +1,54 @@
+services:
+  mcpserver:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "5100:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=mcptools;Username=mcp;Password=McpS3cur3Pass!
+      - Redis__ConnectionString=redis:6379
+      - Nvidia__ApiKey=${NVIDIA_API_KEY}
+      - Nvidia__BaseUrl=https://integrate.api.nvidia.com/v1
+      - Nvidia__ChatModel=meta/llama-3.3-70b-instruct
+      - Nvidia__EmbeddingModel=nvidia/nv-embedqa-e5-v5
+      - Jwt__SecretKey=${JWT_SECRET_KEY:-super-secret-key-for-dev-only-change-in-prod-32chars!!}
+      - Jwt__Issuer=mcpserver
+      - Jwt__Audience=mcptools
+      - Encryption__Key=${ENCRYPTION_KEY:-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: mcp
+      POSTGRES_PASSWORD: McpS3cur3Pass!
+      POSTGRES_DB: mcptools
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mcp -d mcptools"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  pgdata:
