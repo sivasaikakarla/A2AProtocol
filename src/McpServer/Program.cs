@@ -12,10 +12,23 @@ using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using StackExchange.Redis;
 
-// Load local .env variables into environment if present
-if (File.Exists(".env"))
+// Load local .env variables into environment if present in current or parent directories
+var currentDir = new DirectoryInfo(Directory.GetCurrentDirectory());
+string? envFilePath = null;
+while (currentDir != null)
 {
-    foreach (var line in File.ReadAllLines(".env"))
+    var candidate = Path.Combine(currentDir.FullName, ".env");
+    if (File.Exists(candidate))
+    {
+        envFilePath = candidate;
+        break;
+    }
+    currentDir = currentDir.Parent;
+}
+
+if (envFilePath != null)
+{
+    foreach (var line in File.ReadAllLines(envFilePath))
     {
         var trimmed = line.Trim();
         if (string.IsNullOrEmpty(trimmed) || trimmed.StartsWith("#")) continue;
@@ -109,6 +122,11 @@ builder.Services.Configure<NvidiaConfig>(options =>
 builder.Services.AddHttpClient<NvidiaLlmClient>();
 builder.Services.AddScoped<VectorSearchService>();
 
+// Register MCP Enterprise Services
+builder.Services.AddSingleton<ComplianceRulesEngine>();
+builder.Services.AddSingleton<ToolRegistry>();
+builder.Services.AddScoped<AuditLogService>();
+
 // Configure Authentication & JWT Bearer
 builder.Services.AddAuthentication(options =>
 {
@@ -164,7 +182,11 @@ app.UseMiddleware<JwtMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.UseFastEndpoints();
+app.UseFastEndpoints(c =>
+{
+    c.Errors.StatusCode = StatusCodes.Status422UnprocessableEntity;
+    c.Errors.UseProblemDetails();
+});
 
 // Health check endpoint returning 200 OK
 app.MapHealthChecks("/health");
