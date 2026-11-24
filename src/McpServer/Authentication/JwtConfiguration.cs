@@ -27,4 +27,13 @@ public sealed class JwtConfiguration
     /// Expiry duration in minutes. Defaults to 60.
     /// </summary>
     public int ExpiryMinutes { get; init; } = 60;
+
+    /// <summary>
+    /// List of URL path prefixes that bypass authentication (e.g. /health, /auth/token, /swagger).
+    /// </summary>
+    public string[] ExcludedPaths { get; init; } = [
+        "/health",
+        "/auth/token",
+        "/"
+    ];
 }

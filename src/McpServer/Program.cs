@@ -60,6 +60,9 @@ var app = builder.Build();
 
 app.UseSerilogRequestLogging();
 
+// Custom JWT Middleware that honors ExcludedPaths (/health, /auth/token, /, etc.)
+app.UseMiddleware<JwtMiddleware>();
+
 app.UseAuthentication();
 app.UseAuthorization();
 
