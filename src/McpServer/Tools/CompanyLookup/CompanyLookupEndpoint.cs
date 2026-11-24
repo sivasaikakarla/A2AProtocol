@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Security.Claims;
 using FastEndpoints;
+using FastEndpoints.Mcp;
 using McpServer.Data;
 using McpServer.ErrorHandling;
 using McpServer.Services;
@@ -23,6 +24,7 @@ public sealed class CompanyLookupEndpoint : Endpoint<LookupCompanyRequest, Looku
     {
         Post("/api/tools/lookup-company");
         Roles("tool-executor", "admin");
+        this.McpTool("lookup_company", "Looks up corporate metadata, SEC CIK numbers, industry classifications, and available indexed filing periods for a given stock ticker.");
         Description(b => b
             .Produces<LookupCompanyResponse>(200, "application/json")
             .ProducesProblemFE(422)

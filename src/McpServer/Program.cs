@@ -1,5 +1,6 @@
 using System.Text;
 using FastEndpoints;
+using FastEndpoints.Mcp;
 using McpServer.Agents;
 using McpServer.Authentication;
 using McpServer.Data;
@@ -126,6 +127,7 @@ builder.Services.AddScoped<VectorSearchService>();
 builder.Services.AddSingleton<ComplianceRulesEngine>();
 builder.Services.AddSingleton<ToolRegistry>();
 builder.Services.AddScoped<AuditLogService>();
+builder.Services.AddScoped<AgentOrchestrator>();
 
 // Configure Authentication & JWT Bearer
 builder.Services.AddAuthentication(options =>
@@ -152,8 +154,13 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
-// Add FastEndpoints
+// Add FastEndpoints and Model Context Protocol (MCP) bridge
 builder.Services.AddFastEndpoints();
+builder.Services.AddMcp(options =>
+{
+    // Allow external MCP clients to see all registered enterprise tools
+    options.ToolVisibilityFilter = (_, _, _) => true;
+});
 
 // Configure Health Checks
 builder.Services.AddHealthChecks();
@@ -187,6 +194,9 @@ app.UseFastEndpoints(c =>
     c.Errors.StatusCode = StatusCodes.Status422UnprocessableEntity;
     c.Errors.UseProblemDetails();
 });
+
+// Expose standard Model Context Protocol (MCP) Streamable HTTP endpoint at /mcp
+app.UseMcp("/mcp");
 
 // Health check endpoint returning 200 OK
 app.MapHealthChecks("/health");

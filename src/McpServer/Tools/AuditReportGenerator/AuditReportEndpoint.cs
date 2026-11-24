@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Security.Claims;
 using FastEndpoints;
+using FastEndpoints.Mcp;
 using McpServer.Agents;
 using McpServer.Data;
 using McpServer.Services;
@@ -28,6 +29,7 @@ public sealed class AuditReportEndpoint : Endpoint<GenerateAuditReportRequest, G
     {
         Post("/api/tools/generate-report");
         Roles("tool-executor", "admin");
+        this.McpTool("generate_audit_report", "Generates structured multi-section financial audit reports (executive-summary, risk-analysis, full) synthesizing SEC 10-K disclosures.");
         Description(b => b
             .Produces<GenerateAuditReportResponse>(200, "application/json")
             .ProducesProblemFE(422)

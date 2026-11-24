@@ -53,6 +53,33 @@ public class ToolRegistryAndRulesEngineTests
     }
 
     [Fact]
+    public void ToolRegistry_GetToolDescriptions_ContainsAllToolNamesAndSyntax()
+    {
+        var registry = new ToolRegistry();
+        var descriptions = registry.GetToolDescriptions();
+
+        Assert.Contains("search_financial_filings", descriptions);
+        Assert.Contains("check_compliance", descriptions);
+        Assert.Contains("generate_audit_report", descriptions);
+        Assert.Contains("lookup_company", descriptions);
+        Assert.Contains("```tool_call", descriptions);
+    }
+
+    [Theory]
+    [InlineData("search_filings", "search_financial_filings")]
+    [InlineData("check-compliance", "check_compliance")]
+    [InlineData("generate-report", "generate_audit_report")]
+    [InlineData("lookup-company", "lookup_company")]
+    public void ToolRegistry_NormalizesAliases_ResolvesSuccessfully(string alias, string expectedName)
+    {
+        var registry = new ToolRegistry();
+        var tool = registry.GetTool(alias);
+
+        Assert.NotNull(tool);
+        Assert.Equal(expectedName, tool.Name);
+    }
+
+    [Fact]
     public void ComplianceRulesEngine_EvaluatesUnsupportedFramework_ReturnsFail()
     {
         var engine = new ComplianceRulesEngine();

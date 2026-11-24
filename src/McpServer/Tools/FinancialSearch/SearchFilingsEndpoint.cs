@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Security.Claims;
 using FastEndpoints;
+using FastEndpoints.Mcp;
 using McpServer.Agents;
 using McpServer.Services;
 
@@ -26,6 +27,7 @@ public sealed class SearchFilingsEndpoint : Endpoint<SearchFilingsRequest, Searc
     {
         Post("/api/tools/search-filings");
         Roles("tool-executor", "admin");
+        this.McpTool("search_financial_filings", "Executes semantic RAG vector search across regulatory SEC 10-K filings using pgvector and synthesizes grounded answers with citations.");
         Description(b => b
             .Produces<SearchFilingsResponse>(200, "application/json")
             .ProducesProblemFE(422)

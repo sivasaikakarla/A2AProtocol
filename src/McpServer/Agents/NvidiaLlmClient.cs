@@ -48,8 +48,6 @@ public sealed class NvidiaLlmClient
         string? model = null,
         CancellationToken ct = default)
     {
-        var targetModel = model ?? _config.ChatModel;
-
         var messages = new List<ChatMessageDto>();
         if (!string.IsNullOrWhiteSpace(systemPrompt))
         {
@@ -57,10 +55,23 @@ public sealed class NvidiaLlmClient
         }
         messages.Add(new ChatMessageDto { Role = "user", Content = userMessage });
 
+        return await ChatMessagesAsync(messages, model, ct);
+    }
+
+    /// <summary>
+    /// Executes a multi-turn chat completion conversation against NVIDIA NIM.
+    /// </summary>
+    public async Task<string> ChatMessagesAsync(
+        IEnumerable<ChatMessageDto> messages,
+        string? model = null,
+        CancellationToken ct = default)
+    {
+        var targetModel = model ?? _config.ChatModel;
+
         var requestPayload = new ChatCompletionRequest
         {
             Model = targetModel,
-            Messages = messages,
+            Messages = messages.ToList(),
             MaxTokens = _config.MaxTokens,
             Temperature = _config.Temperature
         };

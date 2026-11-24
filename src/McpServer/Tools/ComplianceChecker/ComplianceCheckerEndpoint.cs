@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Security.Claims;
 using FastEndpoints;
+using FastEndpoints.Mcp;
 using McpServer.Agents;
 using McpServer.Data;
 using McpServer.Services;
@@ -31,6 +32,7 @@ public sealed class ComplianceCheckerEndpoint : Endpoint<CheckComplianceRequest,
     {
         Post("/api/tools/check-compliance");
         Roles("tool-executor", "admin");
+        this.McpTool("check_compliance", "Performs automated corporate compliance auditing against regulatory frameworks (SOX-404, SEC-Risk-Disclosure, Basel-III) on filed SEC disclosures.");
         Description(b => b
             .Produces<CheckComplianceResponse>(200, "application/json")
             .ProducesProblemFE(422)
