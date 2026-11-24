@@ -34,6 +34,7 @@ public sealed class JwtConfiguration
     public string[] ExcludedPaths { get; init; } = [
         "/health",
         "/auth/token",
-        "/"
+        "/",
+        "/api/test"
     ];
 }

@@ -40,15 +40,18 @@ public sealed class JwtMiddleware
         {
             _logger.LogWarning("Unauthorized access attempt to protected path '{Path}'.", path);
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-            context.Response.ContentType = "application/json";
-            await context.Response.WriteAsJsonAsync(new
+            context.Response.ContentType = "application/problem+json";
+            var problemResponse = System.Text.Json.JsonSerializer.Serialize(new
             {
                 type = "https://mcpserver.dev/problems/unauthorized",
                 title = "Unauthorized",
                 status = 401,
                 detail = $"Authentication is required to access '{path}'. Pass a valid Bearer token in the Authorization header.",
-                instance = path
+                instance = path,
+                traceId = context.TraceIdentifier,
+                timestamp = DateTime.UtcNow.ToString("O")
             });
+            await context.Response.WriteAsync(problemResponse);
             return;
         }
 

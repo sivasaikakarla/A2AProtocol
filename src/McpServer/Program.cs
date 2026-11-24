@@ -1,6 +1,7 @@
 using System.Text;
 using FastEndpoints;
 using McpServer.Authentication;
+using McpServer.ErrorHandling;
 using McpServer.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -81,7 +82,21 @@ builder.Services.AddFastEndpoints();
 // Configure Health Checks
 builder.Services.AddHealthChecks();
 
+// Configure RFC 7807 Problem Details and Global Exception Handling
+builder.Services.AddProblemDetails(options =>
+{
+    options.CustomizeProblemDetails = ctx =>
+    {
+        ctx.ProblemDetails.Extensions["traceId"] = ctx.HttpContext.TraceIdentifier;
+        ctx.ProblemDetails.Extensions["timestamp"] = DateTime.UtcNow.ToString("O");
+    };
+});
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+
 var app = builder.Build();
+
+// Intercept all unhandled exceptions and format as RFC 7807 Problem Details
+app.UseExceptionHandler();
 
 app.UseSerilogRequestLogging();
 
@@ -97,3 +112,5 @@ app.UseFastEndpoints();
 app.MapHealthChecks("/health");
 
 app.Run();
+
+public partial class Program { }
