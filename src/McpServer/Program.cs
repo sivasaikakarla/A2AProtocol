@@ -1,14 +1,36 @@
 using System.Text;
 using FastEndpoints;
+using McpServer.Agents;
 using McpServer.Authentication;
 using McpServer.Data;
 using McpServer.ErrorHandling;
 using McpServer.Security;
+using McpServer.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using StackExchange.Redis;
+
+// Load local .env variables into environment if present
+if (File.Exists(".env"))
+{
+    foreach (var line in File.ReadAllLines(".env"))
+    {
+        var trimmed = line.Trim();
+        if (string.IsNullOrEmpty(trimmed) || trimmed.StartsWith("#")) continue;
+        var parts = trimmed.Split('=', 2);
+        if (parts.Length == 2)
+        {
+            var key = parts[0].Trim();
+            var val = parts[1].Trim().Trim('"').Trim('\'');
+            if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable(key)))
+            {
+                Environment.SetEnvironmentVariable(key, val);
+            }
+        }
+    }
+}
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -61,6 +83,31 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
     }
 });
 builder.Services.AddSingleton<ITokenCache, EncryptedTokenCache>();
+
+// Configure NVIDIA NIM AI Client & Vector Search
+var nvidiaSection = builder.Configuration.GetSection(NvidiaConfig.SectionName);
+builder.Services.Configure<NvidiaConfig>(options =>
+{
+    nvidiaSection.Bind(options);
+    var envKey = Environment.GetEnvironmentVariable("NVIDIA_API_KEY");
+    if (!string.IsNullOrWhiteSpace(envKey))
+    {
+        options.ApiKey = envKey;
+    }
+    var envChat = Environment.GetEnvironmentVariable("NVIDIA_CHAT_MODEL");
+    if (!string.IsNullOrWhiteSpace(envChat))
+    {
+        options.ChatModel = envChat;
+    }
+    var envEmbed = Environment.GetEnvironmentVariable("NVIDIA_EMBEDDING_MODEL");
+    if (!string.IsNullOrWhiteSpace(envEmbed))
+    {
+        options.EmbeddingModel = envEmbed;
+    }
+});
+
+builder.Services.AddHttpClient<NvidiaLlmClient>();
+builder.Services.AddScoped<VectorSearchService>();
 
 // Configure Authentication & JWT Bearer
 builder.Services.AddAuthentication(options =>
