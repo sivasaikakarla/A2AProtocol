@@ -1,9 +1,11 @@
 using System.Text;
 using FastEndpoints;
 using McpServer.Authentication;
+using McpServer.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,6 +26,29 @@ var jwtConfig = jwtSection.Get<JwtConfiguration>()
 
 // Register Token Service
 builder.Services.AddSingleton<TokenService>();
+
+// Configure AES-256-GCM Encryption & Redis Token Cache
+var encryptionKey = builder.Configuration["Encryption:Key"]
+    ?? throw new InvalidOperationException("Encryption:Key configuration is required.");
+builder.Services.AddSingleton(new AesGcmEncryptor(encryptionKey));
+
+var redisConnectionString = builder.Configuration["Redis:ConnectionString"] ?? "localhost:6379";
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+{
+    var logger = sp.GetRequiredService<ILogger<Program>>();
+    try
+    {
+        return ConnectionMultiplexer.Connect(redisConnectionString);
+    }
+    catch (Exception ex)
+    {
+        logger.LogWarning(ex, "Could not establish initial connection to Redis at {ConnectionString}. Lazy retry will apply.", redisConnectionString);
+        var config = ConfigurationOptions.Parse(redisConnectionString);
+        config.AbortOnConnectFail = false;
+        return ConnectionMultiplexer.Connect(config);
+    }
+});
+builder.Services.AddSingleton<ITokenCache, EncryptedTokenCache>();
 
 // Configure Authentication & JWT Bearer
 builder.Services.AddAuthentication(options =>
