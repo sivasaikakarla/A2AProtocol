@@ -1,0 +1,74 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    name: Build, Test & Validate
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: mcp
+          POSTGRES_PASSWORD: McpS3cur3Pass!
+          POSTGRES_DB: mcptools
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U mcp -d mcptools"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6380:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=mcptools;Username=mcp;Password=McpS3cur3Pass!
+      Redis__ConnectionString: localhost:6380
+      Jwt__SecretKey: super-secret-key-for-dev-only-change-in-prod-32chars!!
+      Jwt__Issuer: mcpserver
+      Jwt__Audience: mcptools
+      Encryption__Key: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore Dependencies
+        run: dotnet restore
+
+      - name: Build Solution
+        run: dotnet build --no-restore --configuration Release
+
+      - name: Run Unit Tests
+        run: dotnet test tests/McpServer.UnitTests/McpServer.UnitTests.csproj --no-build --configuration Release --verbosity normal --collect:"XPlat Code Coverage"
+
+      - name: Run Integration Tests
+        run: dotnet test tests/McpServer.IntegrationTests/McpServer.IntegrationTests.csproj --no-build --configuration Release --verbosity normal
+        continue-on-error: false
+
+      - name: Validate Multi-Stage Docker Build
+        run: docker build -f docker/Dockerfile -t mcpserver:ci .

@@ -11,8 +11,9 @@ services:
       - Redis__ConnectionString=redis:6379
       - Nvidia__ApiKey=${NVIDIA_API_KEY}
       - Nvidia__BaseUrl=https://integrate.api.nvidia.com/v1
-      - Nvidia__ChatModel=meta/llama-3.3-70b-instruct
-      - Nvidia__EmbeddingModel=nvidia/nv-embedqa-e5-v5
+      - Nvidia__ChatModel=${NVIDIA_CHAT_MODEL:-nvidia/nemotron-3.5-super-vl-120b-a12b}
+      - Nvidia__EmbeddingModel=${NVIDIA_EMBEDDING_MODEL:-nvidia/nemotron-3.5-embed-1b}
+      - Nvidia__FallbackModel=${NVIDIA_FALLBACK_MODEL:-nvidia/nemotron-3-ultra-550b-a55b}
       - Jwt__SecretKey=${JWT_SECRET_KEY:-super-secret-key-for-dev-only-change-in-prod-32chars!!}
       - Jwt__Issuer=mcpserver
       - Jwt__Audience=mcptools
