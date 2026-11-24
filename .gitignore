@@ -2,6 +2,8 @@
 bin/
 obj/
 out/
+bin\*/
+obj\*/
 [Dd]ebug/
 [Rr]elease/
 

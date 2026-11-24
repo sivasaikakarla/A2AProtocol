@@ -1,9 +1,11 @@
 using System.Text;
 using FastEndpoints;
 using McpServer.Authentication;
+using McpServer.Data;
 using McpServer.ErrorHandling;
 using McpServer.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using StackExchange.Redis;
@@ -32,6 +34,15 @@ builder.Services.AddSingleton<TokenService>();
 var encryptionKey = builder.Configuration["Encryption:Key"]
     ?? throw new InvalidOperationException("Encryption:Key configuration is required.");
 builder.Services.AddSingleton(new AesGcmEncryptor(encryptionKey));
+
+// Configure PostgreSQL DbContext with pgvector
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException("DefaultConnection connection string is required.");
+
+builder.Services.AddDbContext<AppDbContext>(options =>
+{
+    options.UseNpgsql(connectionString, o => o.UseVector());
+});
 
 var redisConnectionString = builder.Configuration["Redis:ConnectionString"] ?? "localhost:6379";
 builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
@@ -110,6 +121,24 @@ app.UseFastEndpoints();
 
 // Health check endpoint returning 200 OK
 app.MapHealthChecks("/health");
+
+// Apply pending EF Core database migrations on startup
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    try
+    {
+        logger.LogInformation("Applying pending PostgreSQL database migrations...");
+        await db.Database.MigrateAsync();
+        logger.LogInformation("Database migrations applied successfully.");
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Failed to apply database migrations on startup.");
+        throw;
+    }
+}
 
 app.Run();
 
