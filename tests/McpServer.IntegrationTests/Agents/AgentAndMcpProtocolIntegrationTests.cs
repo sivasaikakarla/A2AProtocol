@@ -125,6 +125,11 @@ public class AgentAndMcpProtocolIntegrationTests : IClassFixture<WebApplicationF
     [Fact]
     public async Task RunAgent_WithValidRequest_ExecutesMultiTurnAndReturnsAnswer()
     {
+        if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("NVIDIA_API_KEY")))
+        {
+            return; // Skip live NIM reasoning if NVIDIA_API_KEY is not configured in environment
+        }
+
         var request = CreateAuthenticatedRequest(
             _validJwt,
             HttpMethod.Post,

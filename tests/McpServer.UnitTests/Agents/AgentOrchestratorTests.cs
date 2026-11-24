@@ -2,6 +2,7 @@ using System.Net;
 using System.Text.Json;
 using McpServer.Agents;
 using McpServer.Data;
+using McpServer.Data.Entities;
 using McpServer.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -85,6 +86,27 @@ public class AgentOrchestratorTests
         services.AddLogging();
 
         var sp = services.BuildServiceProvider();
+
+        // Ensure database schema is migrated and sample company seeded
+        using (var scope = sp.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            db.Database.Migrate();
+
+            if (!db.Companies.Any(c => c.Ticker == "AAPL"))
+            {
+                db.Companies.Add(new Company
+                {
+                    Ticker = "AAPL",
+                    CompanyName = "Apple Inc.",
+                    Sector = "Technology",
+                    Industry = "Consumer Electronics",
+                    Cik = "0000320193",
+                    Description = "Designs and manufactures smartphones, personal computers, and tablets."
+                });
+                db.SaveChanges();
+            }
+        }
 
         return new AgentOrchestrator(
             sp.GetRequiredService<NvidiaLlmClient>(),
